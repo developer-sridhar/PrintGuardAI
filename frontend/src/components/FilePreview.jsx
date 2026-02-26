@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileText, Download, Maximize2, Loader2 } from 'lucide-react';
+import { FileText, Download, Maximize2, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
@@ -69,8 +69,24 @@ const FilePreview = ({ fileData, previewUrl }) => {
                                  />
                              </Document>
                              {numPages && (
-                                <div className="absolute top-4 right-4 bg-navy-900/80 backdrop-blur text-white text-xs px-2 py-1 rounded-md font-medium shadow-sm">
-                                    Page {pageNumber} / {numPages}
+                                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-navy-900/90 backdrop-blur text-white px-3 py-2 rounded-full font-medium shadow-lg flex items-center gap-4 border border-navy-700">
+                                    <button 
+                                        onClick={() => setPageNumber(prev => Math.max(1, prev - 1))}
+                                        disabled={pageNumber <= 1}
+                                        className="p-1 hover:bg-white/20 hover:text-cyan-400 rounded-full disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-white transition-all"
+                                    >
+                                        <ChevronLeft className="w-5 h-5" />
+                                    </button>
+                                    <span className="text-xs tracking-widest uppercase font-semibold text-slate-300">
+                                        Page <span className="text-white">{pageNumber}</span> / {numPages}
+                                    </span>
+                                    <button 
+                                        onClick={() => setPageNumber(prev => Math.min(numPages, prev + 1))}
+                                        disabled={pageNumber >= numPages}
+                                        className="p-1 hover:bg-white/20 hover:text-cyan-400 rounded-full disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-white transition-all"
+                                    >
+                                        <ChevronRight className="w-5 h-5" />
+                                    </button>
                                 </div>
                              )}
                          </div>
