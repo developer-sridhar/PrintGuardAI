@@ -7,10 +7,23 @@ const UploadZone = () => {
     const navigate = useNavigate();
     const [isUploading, setIsUploading] = useState(false);
     const [selectedFile, setSelectedFile] = useState(null);
+    const [previewUrl, setPreviewUrl] = useState(null);
 
     const handleFileChange = (e) => {
-        if (e.target.files && e.target.files[0]) {
-            setSelectedFile(e.target.files[0]);
+        const file = e.target.files?.[0];
+        if (file) {
+            setSelectedFile(file);
+            
+            // Create a local preview URL if it's an image
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    setPreviewUrl(reader.result);
+                };
+                reader.readAsDataURL(file);
+            } else {
+                setPreviewUrl(null); // Vector/PDF logic handled down the line
+            }
         }
     };
 
@@ -40,7 +53,13 @@ const UploadZone = () => {
             toast.success("Analysis complete!");
 
             // Navigate to report and pass the fetched data via React Router state
-            navigate('/report', { state: { reportData: data } });
+            navigate('/report', { 
+                state: { 
+                    reportData: data,
+                    previewUrl: previewUrl,
+                    fileName: selectedFile.name
+                } 
+            });
 
         } catch (error) {
             console.error("Upload error:", error);

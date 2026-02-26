@@ -45,6 +45,7 @@ const Report = () => {
 
     // Use dynamically passed data from upload, fallback to mock data if accessed directly
     const analysisData = location.state?.reportData || initialMockData;
+    const previewUrl = location.state?.previewUrl || null;
     const isMock = !location.state?.reportData;
 
     const handleDownloadPDF = async () => {
@@ -119,7 +120,7 @@ const Report = () => {
             {/* Main Grid: Preview & Score */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
                 <div className="lg:col-span-2">
-                    <FilePreview fileData={analysisData} />
+                    <FilePreview fileData={analysisData} previewUrl={previewUrl} />
                 </div>
                 <div className="lg:col-span-1">
                     <ScoreGauge score={analysisData.score} />
