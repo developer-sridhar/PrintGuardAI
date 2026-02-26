@@ -6,6 +6,7 @@ import tempfile
 import os
 import asyncio
 import random
+from datetime import datetime
 
 from services.pdf_generator import PrintReportGenerator
 
@@ -68,9 +69,19 @@ async def analyze_design_file(file: UploadFile = File(...)):
     # 1. Simulate AI Processing time (2.5 seconds)
     await asyncio.sleep(2.5)
 
-    # 2. Extract basic file info
+    # Extract basic file info
     file_name = file.filename
     client_name = "User Client" # Fallback or extracted from session
+    
+    # Generate real timestamps
+    current_date = datetime.now().strftime("%B %d, %Y - %I:%M %p")
+    
+    # Infer basic properties from file extension
+    file_ext = file_name.split('.')[-1].lower() if '.' in file_name else ''
+    is_vector = file_ext in ['pdf', 'ai', 'eps', 'svg']
+    
+    print_method = "Offset Press" if is_vector else "Digital Press"
+    paper_type = "Premium Matte 150gsm" if is_vector else "Standard Glossy 130gsm"
     
     # Generate some slightly randomized "AI" variance to make it feel real
     score = random.randint(82, 98)
@@ -81,9 +92,9 @@ async def analyze_design_file(file: UploadFile = File(...)):
     analysis_data = {
         "file_name": file_name,
         "client_name": client_name,
-        "date": "2024-03-24", # Static for mockup, usually dynamically generated
-        "paper_type": "Matte 130gsm",
-        "print_method": "Digital Press",
+        "date": current_date, # Dynamic real exact current server time!
+        "paper_type": paper_type,
+        "print_method": print_method,
         "score": score,
         "safety_level": "HIGH" if score > 90 else "MEDIUM",
         "resolution": "300 DPI" if score > 85 else "150 DPI",
