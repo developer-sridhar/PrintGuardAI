@@ -55,13 +55,15 @@ const Report = () => {
             const canvas = await html2canvas(reportRef.current, { scale: 2, useCORS: true, logging: false });
             const imgData = canvas.toDataURL('image/png');
 
-            const pdf = new jsPDF('p', 'mm', 'a4');
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-
-            // Add slight margin
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-            pdf.save(`PrintGuard_Analysis_${analysisData.file_name}.pdf`);
+            // Use exact pixel dimensions of the canvas to preserve perfect layout alignment
+            const pdf = new jsPDF({
+                orientation: canvas.width > canvas.height ? 'l' : 'p',
+                unit: 'px',
+                format: [canvas.width, canvas.height]
+            });
+            
+            pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+            pdf.save(`PrintGuard_Analysis_${analysisData.file_name.replace(/\.[^/.]+$/, "")}.pdf`);
 
             toast.success("Report downloaded successfully!");
         } catch (error) {
@@ -117,7 +119,7 @@ const Report = () => {
             {/* Main Grid: Preview & Score */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
                 <div className="lg:col-span-2">
-                    <FilePreview />
+                    <FilePreview fileData={analysisData} />
                 </div>
                 <div className="lg:col-span-1">
                     <ScoreGauge score={analysisData.score} />

@@ -1,7 +1,7 @@
 import React from 'react';
 import { FileText, Download, Maximize2 } from 'lucide-react';
 
-const FilePreview = () => {
+const FilePreview = ({ fileData }) => {
     return (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-full">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
@@ -10,8 +10,8 @@ const FilePreview = () => {
                         <FileText className="w-5 h-5" />
                     </div>
                     <div>
-                        <h3 className="font-semibold text-slate-800">brand_brochure_v2.pdf</h3>
-                        <p className="text-xs text-slate-500">12.4 MB • 300 DPI</p>
+                        <h3 className="font-semibold text-slate-800">{fileData?.file_name || 'Analyzing Document...'}</h3>
+                        <p className="text-xs text-slate-500">{fileData?.resolution || 'Calculated DPI'} • {fileData?.print_method || 'Print Ready'}</p>
                     </div>
                 </div>
                 <div className="flex gap-2">
