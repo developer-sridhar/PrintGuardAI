@@ -27,8 +27,9 @@ const UploadZone = () => {
             const formData = new FormData();
             formData.append('file', selectedFile);
 
-            const host = window.location.hostname === 'localhost' ? 'http://localhost:8000' : '';
-            const response = await fetch(`${host}/api/analyze`, {
+            // Use Vercel/Render friendly environment variables, fallback for dev
+            const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+            const response = await fetch(`${apiBase}/api/analyze`, {
                 method: 'POST',
                 body: formData,
             });
