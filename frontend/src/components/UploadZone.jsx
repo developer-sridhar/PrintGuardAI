@@ -64,7 +64,8 @@ const UploadZone = () => {
                     Drag & drop your PDF, AI, PSD, or EPS file here. We'll analyze color profiles, layout safety, and print readiness.
                 </p>
 
-                <form onSubmit={handleUpload} className="relative group cursor-pointer border-2 border-dashed border-slate-300 hover:border-cyan-400 bg-slate-50 hover:bg-cyan-50/30 transition-all rounded-2xl py-12 px-6">
+                {/* Primary Upload Input Area */}
+                <form onSubmit={handleUpload} className="relative group cursor-pointer border-2 border-dashed border-slate-300 hover:border-cyan-400 bg-slate-50 hover:bg-cyan-50/30 transition-all rounded-2xl py-12 px-6 mb-4">
                     <input
                         type="file"
                         onChange={handleFileChange}
@@ -80,12 +81,9 @@ const UploadZone = () => {
                             </div>
                         ) : (
                             <>
-                                <button
-                                    type="submit"
-                                    className="inline-flex items-center justify-center px-6 py-3 rounded-full bg-navy-900 text-white font-semibold text-sm shadow-md mb-4 group-hover:bg-cyan-600 transition-colors z-20 relative pointer-events-auto"
-                                >
-                                    {selectedFile ? `Analyze: ${selectedFile.name}` : 'Browse Files'}
-                                </button>
+                                <div className="inline-flex items-center justify-center px-6 py-3 rounded-full bg-white border border-slate-200 text-navy-900 font-semibold text-sm shadow-sm mb-4 group-hover:border-cyan-300 transition-colors pointer-events-none">
+                                    {selectedFile ? `Selected: ${selectedFile.name}` : 'Browse Files to Upload'}
+                                </div>
                                 <p className="text-sm text-slate-400 font-medium tracking-wide">
                                     {selectedFile ? `${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB` : 'Max file size: 50MB'}
                                 </p>
@@ -93,6 +91,20 @@ const UploadZone = () => {
                         )}
                     </div>
                 </form>
+
+                {/* Animated Distinct Generate Button (Appears only when file is selected) */}
+                {selectedFile && !isUploading && (
+                    <div className="animate-fade-in-up mt-6">
+                        <button
+                            onClick={handleUpload}
+                            className="relative group overflow-hidden px-8 py-4 bg-navy-900 hover:bg-navy-800 text-white rounded-2xl font-bold tracking-wide shadow-xl shadow-navy-900/20 transition-all duration-300 hover:scale-[1.02] active:scale-95 w-full sm:w-auto flex items-center justify-center gap-3 mx-auto border border-navy-700"
+                        >
+                            <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></span>
+                            <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></div>
+                            Generate AI Analysis
+                        </button>
+                    </div>
+                )}
             </div>
 
             <div className="bg-slate-50 p-6 border-t border-slate-100 flex flex-col md:flex-row gap-4 items-center justify-center text-sm text-slate-500">
