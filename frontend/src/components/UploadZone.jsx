@@ -14,15 +14,15 @@ const UploadZone = () => {
         if (file) {
             setSelectedFile(file);
             
-            // Create a local preview URL if it's an image
-            if (file.type.startsWith('image/')) {
+            // Create a local preview URL if it's an image OR a PDF
+            if (file.type.startsWith('image/') || file.type === 'application/pdf') {
                 const reader = new FileReader();
                 reader.onloadend = () => {
                     setPreviewUrl(reader.result);
                 };
                 reader.readAsDataURL(file);
             } else {
-                setPreviewUrl(null); // Vector/PDF logic handled down the line
+                setPreviewUrl(null); // CDR/PSD/AI fallback handled down the line
             }
         }
     };

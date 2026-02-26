@@ -1,9 +1,23 @@
-import React from 'react';
-import { FileText, Download, Maximize2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { FileText, Download, Maximize2, Loader2 } from 'lucide-react';
+import { Document, Page, pdfjs } from 'react-pdf';
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
+
+// Configure PDF.js worker securely from CDN matching the installed version
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 const FilePreview = ({ fileData, previewUrl }) => {
-    // Determine if it's a vector/pdf format based on filename
-    const isImage = previewUrl !== null;
+    const [numPages, setNumPages] = useState(null);
+    const [pageNumber, setPageNumber] = useState(1);
+    
+    // Determine preview capabilities based on file format
+    const isImage = fileData?.file_name.match(/\.(jpeg|jpg|gif|png|webp)$/i) != null;
+    const isPdf = fileData?.file_name.match(/\.(pdf)$/i) != null;
+
+    const onDocumentLoadSuccess = ({ numPages }) => {
+        setNumPages(numPages);
+    };
 
     return (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-full">
@@ -34,7 +48,33 @@ const FilePreview = ({ fileData, previewUrl }) => {
                 </div>
 
                 <div className="relative w-full max-w-md bg-white shadow-lg border border-slate-200 rounded animate-fade-in mx-auto transform transition-transform group-hover:scale-[1.02] overflow-hidden flex items-center justify-center min-h-[400px]">
-                    {isImage ? (
+                    {isPdf && previewUrl ? (
+                         <div className="w-full flex-col flex items-center bg-slate-100 overflow-hidden">
+                             <Document
+                                 file={previewUrl}
+                                 onLoadSuccess={onDocumentLoadSuccess}
+                                 loading={<Loader2 className="w-8 h-8 text-cyan-600 animate-spin my-12" />}
+                                 error={
+                                    <div className="p-8 text-center border-2 border-dashed border-red-200/50 rounded flex flex-col items-center justify-center bg-red-50/20 m-4">
+                                        <span className="text-sm font-medium text-slate-500 font-mono">PDF Preview Error</span>
+                                        <span className="text-xs text-slate-400 mt-2">Failed to render the document visually.</span>
+                                    </div>
+                                 }
+                             >
+                                 <Page 
+                                    pageNumber={pageNumber} 
+                                    width={380} // Cap width to fit nicely in the max-w-md container
+                                    renderTextLayer={false}
+                                    renderAnnotationLayer={false}
+                                 />
+                             </Document>
+                             {numPages && (
+                                <div className="absolute top-4 right-4 bg-navy-900/80 backdrop-blur text-white text-xs px-2 py-1 rounded-md font-medium shadow-sm">
+                                    Page {pageNumber} / {numPages}
+                                </div>
+                             )}
+                         </div>
+                    ) : isImage && previewUrl ? (
                         <img 
                             src={previewUrl} 
                             alt="Uploaded Design Preview" 
@@ -43,7 +83,7 @@ const FilePreview = ({ fileData, previewUrl }) => {
                     ) : (
                         <div className="absolute inset-4 border-2 border-dashed border-cyan-200/50 rounded flex flex-col items-center justify-center bg-cyan-50/20">
                             <span className="text-sm font-medium text-slate-400 font-mono">{fileData?.file_name.split('.').pop().toUpperCase() || 'DOCUMENT'} File</span>
-                            <span className="text-xs text-slate-400 mt-2 text-center px-4">Vector formats usually require desktop rendering. Analysis data is calculated server-side.</span>
+                            <span className="text-xs text-slate-400 mt-2 text-center px-4">Complex vector formulas usually require desktop rendering. Analysis data is calculated server-side.</span>
                         </div>
                     )}
                 </div>
