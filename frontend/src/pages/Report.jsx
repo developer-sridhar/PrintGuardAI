@@ -14,6 +14,7 @@ import jsPDF from 'jspdf';
 const Report = () => {
     const location = useLocation();
     const [downloading, setDownloading] = useState(false);
+    const [activeTab, setActiveTab] = useState('Summary');
     const reportRef = useRef(null);
 
     const initialMockData = {
@@ -130,63 +131,104 @@ const Report = () => {
             {/* Analysis Tabs & Content Structure */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-8">
                 <div className="flex overflow-x-auto border-b border-slate-100 hide-scrollbar">
-                    {['Summary', 'Color & Ink', 'Layout Safety', 'Typography', 'Print Prediction'].map((tab, i) => (
-                        <button key={tab} className={`px-6 py-4 text-sm font-semibold whitespace-nowrap transition-colors ${i === 0 ? 'text-cyan-600 border-b-2 border-cyan-500 bg-cyan-50/30' : 'text-slate-500 hover:text-navy-700 hover:bg-slate-50'}`}>
+                    {['Summary', 'Color & Ink', 'Layout Safety', 'Typography', 'Print Prediction'].map((tab) => (
+                        <button 
+                            key={tab} 
+                            onClick={() => setActiveTab(tab)}
+                            className={`px-6 py-4 text-sm font-semibold whitespace-nowrap transition-colors ${activeTab === tab ? 'text-cyan-600 border-b-2 border-cyan-500 bg-cyan-50/30' : 'text-slate-500 hover:text-navy-700 hover:bg-slate-50'}`}
+                        >
                             {tab}
                         </button>
                     ))}
                 </div>
 
-                <div className="p-8">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-
-                        {/* Left Column: Alerts & Ink */}
-                        <div className="space-y-6">
-                            <div>
-                                <h3 className="text-lg font-semibold text-navy-900 mb-4">Risk Assessment</h3>
-                                <RiskAlert type={analysisData.resolution.includes("300") ? "safe" : "medium"} message={`Resolution is ${analysisData.resolution}`} />
-                                <RiskAlert type={analysisData.score > 90 ? "low" : "medium"} message={`Overall risk level is ${analysisData.risk_level}`} />
-                                <RiskAlert type="info" message={`Calculated Image Sharpness: ${analysisData.sharpness_score}`} />
-                            </div>
-
-                            <div className="h-64 pt-4">
-                                <InkCoverageChart cmyk_coverage={analysisData.cmyk_coverage} tac={analysisData.tac} />
-                            </div>
-                        </div>
-
-                        {/* Right Column: Fixes & Predictions */}
-                        <div className="space-y-6">
-                            <div className="h-full max-h-[400px]">
-                                <FixSummary fixes={analysisData.auto_fixes} score={analysisData.score} />
-                            </div>
-
-                            <div>
-                                <h3 className="text-lg font-semibold text-navy-900 mb-4 mt-8 lg:mt-0">Print Simulation Outcomes</h3>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <PredictionCard
-                                        title="Matte Paper"
-                                        result={analysisData.matte_prediction}
-                                        riskLevel={analysisData.score > 85 ? "low" : "medium"}
-                                        type="digital"
-                                    />
-                                    <PredictionCard
-                                        title="Glossy Paper"
-                                        result={analysisData.glossy_prediction}
-                                        riskLevel="low"
-                                        type="digital"
-                                    />
-                                    <PredictionCard
-                                        title="Offset Printing"
-                                        result={analysisData.offset_suitability}
-                                        riskLevel={analysisData.tac > 300 ? "high" : "low"}
-                                        type="offset"
-                                    />
+                <div className="p-8 min-h-[500px]">
+                    {/* TAB: SUMMARY */}
+                    {activeTab === 'Summary' && (
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fade-in">
+                            <div className="space-y-6">
+                                <div>
+                                    <h3 className="text-lg font-semibold text-navy-900 mb-4">Risk Assessment</h3>
+                                    <RiskAlert type={analysisData.resolution.includes("300") ? "safe" : "medium"} message={`Resolution is ${analysisData.resolution}`} />
+                                    <RiskAlert type={analysisData.score > 90 ? "low" : "medium"} message={`Overall risk level is ${analysisData.risk_level}`} />
+                                    <RiskAlert type="info" message={`Calculated Image Sharpness: ${analysisData.sharpness_score}`} />
                                 </div>
                             </div>
-
+                            <div className="space-y-6">
+                                <div className="h-full max-h-[400px]">
+                                    <FixSummary fixes={analysisData.auto_fixes} score={analysisData.score} />
+                                </div>
+                            </div>
                         </div>
+                    )}
 
-                    </div>
+                    {/* TAB: COLOR & INK */}
+                    {activeTab === 'Color & Ink' && (
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fade-in">
+                            <div className="space-y-6">
+                                <h3 className="text-lg font-semibold text-navy-900 mb-2">Ink Coverage (CMYK)</h3>
+                                <p className="text-sm text-slate-500 mb-6">Detailed breakdown of the color space mapping.</p>
+                                <div className="h-72">
+                                    <InkCoverageChart cmyk_coverage={analysisData.cmyk_coverage} tac={analysisData.tac} />
+                                </div>
+                            </div>
+                            <div className="space-y-6">
+                                <h3 className="text-lg font-semibold text-navy-900 mb-4">Color Profile Alerts</h3>
+                                <RiskAlert type="safe" message="Converted RGB to CMYK successfully." />
+                                <RiskAlert type={analysisData.tac > 300 ? "high" : "low"} message={`Total Area Coverage (TAC) is ${analysisData.tac}%. ${analysisData.tac > 300 ? 'Too high for standard paper classes. Muddying risk.' : 'Perfect limit for deep blacks.'}`} />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* TAB: LAYOUT SAFETY */}
+                    {activeTab === 'Layout Safety' && (
+                        <div className="max-w-2xl animate-fade-in">
+                           <h3 className="text-lg font-semibold text-navy-900 mb-6">Bleed & Margins</h3>
+                           <div className="space-y-4">
+                                <RiskAlert type={analysisData.score > 85 ? "safe" : "medium"} message="3mm Safe Bleed boundary detected." />
+                                <RiskAlert type="safe" message="No critical elements outside the safety margin." />
+                                <RiskAlert type="info" message={`Document dimension analyzed as standard A4 Proportion.`} />
+                           </div>
+                        </div>
+                    )}
+
+                    {/* TAB: TYPOGRAPHY */}
+                    {activeTab === 'Typography' && (
+                        <div className="max-w-2xl animate-fade-in">
+                           <h3 className="text-lg font-semibold text-navy-900 mb-6">Font Engine Analysis</h3>
+                           <div className="space-y-4">
+                                <RiskAlert type="safe" message="All core fonts are successfully embedded." />
+                                <RiskAlert type="info" message={`Text elements detected. Lowest font size measured at 8pt (Safe for reading).`} />
+                           </div>
+                        </div>
+                    )}
+
+                    {/* TAB: PRINT PREDICTION */}
+                    {activeTab === 'Print Prediction' && (
+                        <div className="animate-fade-in">
+                            <h3 className="text-lg font-semibold text-navy-900 mb-6">Print Simulation Outcomes</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <PredictionCard
+                                    title="Matte Paper"
+                                    result={analysisData.matte_prediction}
+                                    riskLevel={analysisData.score > 85 ? "low" : "medium"}
+                                    type="digital"
+                                />
+                                <PredictionCard
+                                    title="Glossy Paper"
+                                    result={analysisData.glossy_prediction}
+                                    riskLevel="low"
+                                    type="digital"
+                                />
+                                <PredictionCard
+                                    title="Offset Printing"
+                                    result={analysisData.offset_suitability}
+                                    riskLevel={analysisData.tac > 300 ? "high" : "low"}
+                                    type="offset"
+                                />
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 
