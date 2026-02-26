@@ -80,7 +80,7 @@ const UploadZone = () => {
                     Upload Design File
                 </h2>
                 <p className="text-slate-500 mb-8 max-w-md mx-auto">
-                    Drag & drop your PDF, AI, PSD, or EPS file here. We'll analyze color profiles, layout safety, and print readiness.
+                    Drag & drop your PDF, CDR, AI, PSD, or EPS file here. We'll analyze color profiles, layout safety, and print readiness.
                 </p>
 
                 {/* Primary Upload Input Area */}
@@ -134,7 +134,7 @@ const UploadZone = () => {
                 <div className="hidden md:block w-1.5 h-1.5 rounded-full bg-slate-300"></div>
                 <div className="flex items-center gap-2">
                     <File className="w-4 h-4 text-slate-400" />
-                    <span>PDF, SVG, AI, TIFF</span>
+                    <span>PDF, CDR, AI, TIFF</span>
                 </div>
                 <div className="hidden md:block w-1.5 h-1.5 rounded-full bg-slate-300"></div>
                 <div className="flex items-center gap-2">

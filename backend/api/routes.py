@@ -78,7 +78,7 @@ async def analyze_design_file(file: UploadFile = File(...)):
     
     # Infer basic properties from file extension
     file_ext = file_name.split('.')[-1].lower() if '.' in file_name else ''
-    is_vector = file_ext in ['pdf', 'ai', 'eps', 'svg']
+    is_vector = file_ext in ['pdf', 'ai', 'eps', 'svg', 'cdr']
     
     print_method = "Offset Press" if is_vector else "Digital Press"
     paper_type = "Premium Matte 150gsm" if is_vector else "Standard Glossy 130gsm"
