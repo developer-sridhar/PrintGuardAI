@@ -5,8 +5,8 @@ import {
     signOut,
     onAuthStateChanged
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, googleProvider, db } from '../services/firebase';
+import { auth, googleProvider } from '../services/firebase';
+import { supabase } from '../lib/supabase';
 
 const AuthContext = createContext();
 
@@ -18,20 +18,36 @@ export const AuthProvider = ({ children }) => {
 
     const ensureUserInDB = async (user) => {
         try {
-            const userRef = doc(db, 'users', user.uid);
-            const userSnap = await getDoc(userRef);
+            // Check if user exists in Supabase
+            const { data: existingUser, error: checkError } = await supabase
+                .from('users')
+                .select('uid')
+                .eq('uid', user.uid)
+                .single();
 
-            if (!userSnap.exists()) {
-                await setDoc(userRef, {
-                    uid: user.uid,
-                    email: user.email,
-                    name: user.displayName || user.email?.split('@')[0] || 'Unknown User',
-                    photoURL: user.photoURL || null,
-                    role: 'User',
-                    plan: 'Free',
-                    status: 'Active',
-                    joined: serverTimestamp()
-                });
+            // If we hit a PGRST116 error it means 0 rows returned (user doesn't exist yet)
+            if (checkError && checkError.code !== 'PGRST116') {
+                console.error("Error checking Supabase user:", checkError);
+                return;
+            }
+
+            // Insert new user if they don't exist
+            if (!existingUser) {
+                const { error: insertError } = await supabase
+                    .from('users')
+                    .insert([{
+                        uid: user.uid,
+                        email: user.email,
+                        name: user.displayName || user.email?.split('@')[0] || 'Unknown User',
+                        photo_url: user.photoURL || null,
+                        role: 'User',
+                        plan: 'Free',
+                        status: 'Active'
+                    }]);
+                    
+                if (insertError) {
+                    console.error("Error inserting user to Supabase:", insertError);
+                }
             }
         } catch (error) {
             console.error("Error ensuring user in DB:", error);

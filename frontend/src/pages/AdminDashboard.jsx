@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Activity, CreditCard, ShieldAlert, Search, Filter, MoreVertical, Edit2, Trash2 } from 'lucide-react';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../services/firebase';
+import { supabase } from '../lib/supabase';
 
 const AdminDashboard = () => {
     const [searchTerm, setSearchTerm] = useState('');
@@ -18,15 +17,22 @@ const AdminDashboard = () => {
     useEffect(() => {
         const fetchUsers = async () => {
             try {
-                const querySnapshot = await getDocs(collection(db, 'users'));
-                const fetchedUsers = querySnapshot.docs.map(doc => {
-                    const data = doc.data();
+                const { data: fetchedUsers, error } = await supabase
+                    .from('users')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    throw error;
+                }
+
+                const mappedUsers = fetchedUsers?.map(data => {
                     let joinedDate = 'Just now';
-                    if (data.joined?.toDate) {
-                        joinedDate = data.joined.toDate().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+                    if (data.created_at) {
+                        joinedDate = new Date(data.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
                     }
                     return {
-                        id: doc.id.substring(0, 8),
+                        id: data.uid ? data.uid.substring(0, 8) : 'Unknown',
                         name: data.name || 'Unknown',
                         email: data.email || 'No email',
                         plan: data.plan || 'Free',
@@ -35,17 +41,18 @@ const AdminDashboard = () => {
                         joined: joinedDate
                     };
                 });
-                // Fallback to mock data if Firestore is empty so the table isn't completely blank
-                if (fetchedUsers.length === 0) {
+                
+                // Fallback to mock data if Supabase is empty so the table isn't completely blank during demo
+                if (!mappedUsers || mappedUsers.length === 0) {
                     setUsersList([
                         { id: 'USR-294', name: 'Alfan Alam', email: 'admin@printguard.ai', plan: 'Enterprise', status: 'Active', role: 'Admin', joined: 'Jan 12, 2024' },
                         { id: 'USR-831', name: 'Sarah Jenkins', email: 'sarah.j@designco.com', plan: 'Pro', status: 'Active', role: 'User', joined: 'Feb 03, 2024' }
                     ]);
                 } else {
-                    setUsersList(fetchedUsers);
+                    setUsersList(mappedUsers);
                 }
             } catch (error) {
-                console.error("Error fetching users:", error);
+                console.error("Error fetching users from Supabase:", error);
                 setUsersList([]);
             } finally {
                 setLoading(false);
