@@ -361,17 +361,18 @@ async def analyze_design_file(file: UploadFile = File(...)):
             try:
                 # Use a unique name for storage
                 file_ext = file_name.split('.')[-1] if '.' in file_name else 'dat'
-                unique_name = f"uploads/{datetime.now().strftime('%Y%m%d_%H%M%S')}_{random.randint(1000, 9999)}.{file_ext}"
+                unique_name = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{random.randint(1000, 9999)}.{file_ext}"
                 
                 with open(temp_file_path, 'rb') as f:
-                    print(f"DEBUG: Uploading to bucket 'uploads' at path {unique_name}")
+                    print(f"DEBUG: Uploading to bucket 'uploads' at path {unique_name}", flush=True)
                     res = supabase.storage.from_('uploads').upload(
                         path=unique_name,
                         file=f,
                         file_options={"cacheControl": "3600", "upsert": True}
                     )
                     storage_path = unique_name
-                    print(f"DEBUG: Upload successful: {storage_path}")
+                    print(f"DEBUG: Upload successful: {storage_path}", flush=True)
+
             except Exception as se:
                 log_path = "backend_debug.log"
                 with open(log_path, "a") as f:
@@ -1262,40 +1263,40 @@ async def get_analysis_history(user_id: str = Query(...)):
     history_map = {} # job_id -> record
     
     # 1. Fetch from Firestore (Updated to Subcollection)
-    try:
-        db_firestore = firestore.client()
-        # Fetch from 'users/{user_id}/analyses' subcollection
-        docs = db_firestore.collection('users').document(user_id).collection('analyses').limit(100).stream()
-        
-        for doc in docs:
-            item = doc.to_dict()
-            item['id'] = doc.id
-            item['source'] = 'Firebase'
+    if db_firestore:
+        try:
+            # Fetch from 'users/{user_id}/analyses' subcollection
+            docs = db_firestore.collection('users').document(user_id).collection('analyses').limit(100).stream()
             
-            # 1. Convert Firestore Timestamp to ISO String for JSON serialization
-            if 'created_at' in item and hasattr(item['created_at'], 'isoformat'):
-                item['created_at'] = item['created_at'].isoformat()
-            
-            # 2. Flatten if nested
-            if 'analysis_data' in item and isinstance(item['analysis_data'], dict):
-                nested = item.pop('analysis_data')
-                for k, v in nested.items():
-                    if k not in item: item[k] = v
-            
-            jid = item.get('job_id')
-            if jid:
-                history_map[jid] = item
-            else:
-                # Legacy or missing job_id
-                history_map[item['id']] = item
-    except Exception as e:
-        print(f"Firestore fetch failed: {e}")
+            for doc in docs:
+                item = doc.to_dict()
+                item['id'] = doc.id
+                item['source'] = 'Firebase'
+                
+                # 1. Convert Firestore Timestamp to ISO String for JSON serialization
+                if 'created_at' in item and hasattr(item['created_at'], 'isoformat'):
+                    item['created_at'] = item['created_at'].isoformat()
+                
+                # 2. Flatten if nested
+                if 'analysis_data' in item and isinstance(item['analysis_data'], dict):
+                    nested = item.pop('analysis_data')
+                    for k, v in nested.items():
+                        if k not in item: item[k] = v
+                
+                jid = item.get('job_id')
+                if jid:
+                    history_map[jid] = item
+                else:
+                    # Legacy or missing job_id
+                    history_map[item['id']] = item
+        except Exception as e:
+            print(f"Firestore fetch failed: {e}")
     
     # 2. Fetch from Supabase (New)
     if supabase:
         try:
-            response = supabase.table('reports').select('*').eq('user_id', user_id).order_by('created_at', ascending=False).limit(50).execute()
-            supabase_records = response.data
+            response = supabase.table('reports').select('*').eq('user_id', user_id).order('created_at', desc=True).limit(50).execute()
+            supabase_records = response.data or []
             for record in supabase_records:
                 # Standardize/Flatten if nested
                 if 'analysis_data' in record and isinstance(record['analysis_data'], dict):
@@ -1316,9 +1317,10 @@ async def get_analysis_history(user_id: str = Query(...)):
                     history_map[jid] = record
                     history_map[jid]['id'] = jid
                 else:
-                    history_map[record['id']] = record
+                    history_map[record.get('id', jid)] = record
         except Exception as e:
             print(f"Supabase fetch failed: {e}")
+
 
     combined_history = list(history_map.values())
 
