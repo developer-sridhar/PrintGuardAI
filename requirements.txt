@@ -15,7 +15,6 @@ numpy
 scipy
 requests
 reportlab
-cairosvg
 twilio
 razorpay
 flask
