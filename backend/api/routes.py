@@ -2104,108 +2104,136 @@ async def check_expiring_subscriptions():
 async def get_user_notifications(user_id: str, fetch_all: bool = Query(False)):
     """
     Fetch notifications for a user without requiring composite Firestore indexes.
-    Merges explicit notifications and recent analysis events.
+    Merges explicit notifications, Supabase reports, and Firestore analysis events.
     """
     notifications = []
     seen_ids = set()
 
-    try:
-        db = firestore.client()
-        user_ref = db.collection('users').document(user_id)
-
-        # 1. Fetch from 'notifications' subcollection
+    # 1. Fetch from Firestore if available
+    if db_firestore:
         try:
-            notif_docs = user_ref.collection('notifications').stream()
-            for doc in notif_docs:
-                data = doc.to_dict()
-                data['id'] = doc.id
+            user_ref = db_firestore.collection('users').document(user_id)
 
-                created_at = data.get('created_at')
-                created_str = datetime.now().isoformat()
-                if created_at and hasattr(created_at, 'isoformat'):
-                    created_str = created_at.isoformat()
-                elif isinstance(created_at, str):
-                    created_str = created_at
+            # 1a. Fetch from 'notifications' subcollection
+            try:
+                notif_docs = user_ref.collection('notifications').stream()
+                for doc in notif_docs:
+                    data = doc.to_dict()
+                    data['id'] = doc.id
 
-                data['created_at'] = created_str
-                is_read = data.get('read', False)
-                data['read'] = is_read
+                    created_at = data.get('created_at')
+                    created_str = datetime.now().isoformat()
+                    if created_at and hasattr(created_at, 'isoformat'):
+                        created_str = created_at.isoformat()
+                    elif isinstance(created_at, str):
+                        created_str = created_at
 
-                if fetch_all or not is_read:
-                    notifications.append(data)
-                    seen_ids.add(doc.id)
-                    if data.get('job_id'):
-                        seen_ids.add(data['job_id'])
-                        seen_ids.add(f"analysis_{data['job_id']}")
-        except Exception as e:
-            print(f"Error reading notifications collection: {e}")
+                    data['created_at'] = created_str
+                    is_read = data.get('read', False)
+                    data['read'] = is_read
 
-        # 2. Fetch from 'analyses' subcollection (fallbacks/complements)
+                    if fetch_all or not is_read:
+                        notifications.append(data)
+                        seen_ids.add(doc.id)
+                        if data.get('job_id'):
+                            seen_ids.add(data['job_id'])
+                            seen_ids.add(f"analysis_{data['job_id']}")
+            except Exception as e:
+                print(f"Error reading notifications collection: {e}")
+
+            # 1b. Fetch from 'analyses' subcollection
+            try:
+                analyses_docs = user_ref.collection('analyses').stream()
+                for doc in analyses_docs:
+                    adata = doc.to_dict()
+                    job_id = doc.id
+                    notif_id = f"analysis_{job_id}"
+                    if notif_id in seen_ids or job_id in seen_ids:
+                        continue
+
+                    created_at = adata.get('created_at')
+                    created_str = datetime.now().isoformat()
+                    if created_at and hasattr(created_at, 'isoformat'):
+                        created_str = created_at.isoformat()
+                    elif isinstance(created_at, str):
+                        created_str = created_at
+
+                    score = adata.get('score', 80)
+                    file_name = adata.get('file_name', 'Design file')
+                    is_read = adata.get('read_notification', False)
+
+                    if fetch_all or not is_read:
+                        notifications.append({
+                            "id": notif_id,
+                            "title": "Analysis Complete" if score >= 80 else "High Risk Detected",
+                            "message": f"{file_name} analysis is ready. Score: {score}/100",
+                            "type": "success" if score >= 80 else ("warning" if score >= 60 else "danger"),
+                            "created_at": created_str,
+                            "read": is_read,
+                            "job_id": job_id,
+                            "file_name": file_name,
+                            "score": score
+                        })
+                        seen_ids.add(notif_id)
+            except Exception as e:
+                print(f"Error reading analyses collection: {e}")
+        except Exception as fe:
+            print(f"Firestore notifications fetch skipped: {fe}")
+
+    # 2. Fetch from Supabase reports
+    if supabase:
         try:
-            analyses_docs = user_ref.collection('analyses').stream()
-            for doc in analyses_docs:
-                adata = doc.to_dict()
-                job_id = doc.id
-                notif_id = f"analysis_{job_id}"
+            res = supabase.table('reports').select('*').eq('user_id', user_id).order('created_at', desc=True).limit(20).execute()
+            records = res.data or []
+            for item in records:
+                job_id = item.get('job_id') or str(item.get('id'))
+                notif_id = f"supa_{job_id}"
                 if notif_id in seen_ids or job_id in seen_ids:
                     continue
 
-                created_at = adata.get('created_at')
-                created_str = datetime.now().isoformat()
-                if created_at and hasattr(created_at, 'isoformat'):
-                    created_str = created_at.isoformat()
-                elif isinstance(created_at, str):
-                    created_str = created_at
+                score = item.get('score', 80)
+                file_name = item.get('file_name', 'Design file')
+                created_at = item.get('created_at', datetime.now().isoformat())
 
-                score = adata.get('score', 80)
-                file_name = adata.get('file_name', 'Design file')
-                is_read = adata.get('read_notification', False)
+                notifications.append({
+                    "id": notif_id,
+                    "title": "Analysis Complete" if score >= 80 else "High Risk Detected",
+                    "message": f"{file_name} analysis is ready. Score: {score}/100",
+                    "type": "success" if score >= 80 else ("warning" if score >= 60 else "danger"),
+                    "created_at": str(created_at),
+                    "read": False,
+                    "job_id": job_id,
+                    "file_name": file_name,
+                    "score": score
+                })
+                seen_ids.add(notif_id)
+        except Exception as se:
+            print(f"Supabase notifications fetch failed: {se}")
 
-                if fetch_all or not is_read:
-                    notifications.append({
-                        "id": notif_id,
-                        "title": "Analysis Complete" if score >= 80 else "High Risk Detected",
-                        "message": f"{file_name} analysis is ready. Score: {score}/100",
-                        "type": "success" if score >= 80 else ("warning" if score >= 60 else "danger"),
-                        "created_at": created_str,
-                        "read": is_read,
-                        "job_id": job_id,
-                        "file_name": file_name,
-                        "score": score
-                    })
-                    seen_ids.add(notif_id)
-        except Exception as e:
-            print(f"Error reading analyses collection: {e}")
+    # In-memory date sorting (newest first)
+    def sort_key(item):
+        val = item.get('created_at', '')
+        return str(val) if val else ''
 
-        # In-memory date sorting (newest first) to avoid Firestore index requirements
-        def sort_key(item):
-            val = item.get('created_at', '')
-            return str(val) if val else ''
-
-        notifications.sort(key=sort_key, reverse=True)
-        return notifications
-
-    except Exception as e:
-        print(f"Error fetching notifications: {e}")
-        return []
+    notifications.sort(key=sort_key, reverse=True)
+    return notifications
 
 @router.patch("/user/{user_id}/notifications/{notif_id}/read")
 async def mark_notification_read(user_id: str, notif_id: str):
     """
     Mark a single notification as read.
     """
-    try:
-        db = firestore.client()
-        user_ref = db.collection('users').document(user_id)
-        if notif_id.startswith("analysis_"):
-            real_job_id = notif_id.replace("analysis_", "")
-            user_ref.collection('analyses').document(real_job_id).update({'read_notification': True})
-        else:
-            user_ref.collection('notifications').document(notif_id).update({'read': True})
-        return {"status": "success"}
-    except Exception as e:
-        print(f"Error marking notification read: {e}")
-        return {"status": "success"}
+    if db_firestore:
+        try:
+            user_ref = db_firestore.collection('users').document(user_id)
+            if notif_id.startswith("analysis_"):
+                real_job_id = notif_id.replace("analysis_", "")
+                user_ref.collection('analyses').document(real_job_id).update({'read_notification': True})
+            else:
+                user_ref.collection('notifications').document(notif_id).update({'read': True})
+        except Exception as e:
+            print(f"Error marking notification read: {e}")
+    return {"status": "success"}
 
 @router.post("/user/{user_id}/notifications/read-all")
 @router.patch("/user/{user_id}/notifications/read-all")
@@ -2213,71 +2241,65 @@ async def mark_all_notifications_read(user_id: str):
     """
     Mark all notifications for a user as read.
     """
-    try:
-        db = firestore.client()
-        user_ref = db.collection('users').document(user_id)
+    if db_firestore:
+        try:
+            user_ref = db_firestore.collection('users').document(user_id)
+            batch = db_firestore.batch()
+            count = 0
 
-        batch = db.batch()
-        count = 0
+            notifs = user_ref.collection('notifications').where('read', '==', False).stream()
+            for doc in notifs:
+                batch.update(doc.reference, {'read': True})
+                count += 1
+                if count >= 400:
+                    batch.commit()
+                    batch = db_firestore.batch()
+                    count = 0
 
-        notifs = user_ref.collection('notifications').where('read', '==', False).stream()
-        for doc in notifs:
-            batch.update(doc.reference, {'read': True})
-            count += 1
-            if count >= 400:
+            analyses = user_ref.collection('analyses').where('read_notification', '==', False).stream()
+            for doc in analyses:
+                batch.update(doc.reference, {'read_notification': True})
+                count += 1
+                if count >= 400:
+                    batch.commit()
+                    batch = db_firestore.batch()
+                    count = 0
+
+            if count > 0:
                 batch.commit()
-                batch = db.batch()
-                count = 0
-
-        analyses = user_ref.collection('analyses').where('read_notification', '==', False).stream()
-        for doc in analyses:
-            batch.update(doc.reference, {'read_notification': True})
-            count += 1
-            if count >= 400:
-                batch.commit()
-                batch = db.batch()
-                count = 0
-
-        if count > 0:
-            batch.commit()
-
-        return {"status": "success", "message": "All notifications marked as read"}
-    except Exception as e:
-        print(f"Error marking all notifications read: {e}")
-        return {"status": "success", "message": "Done"}
+        except Exception as e:
+            print(f"Error marking all notifications read: {e}")
+    return {"status": "success", "message": "All notifications marked as read"}
 
 @router.delete("/user/{user_id}/notifications/{notif_id}")
 async def delete_notification(user_id: str, notif_id: str):
     """
     Delete a specific notification.
     """
-    try:
-        db = firestore.client()
-        user_ref = db.collection('users').document(user_id)
-        if notif_id.startswith("analysis_"):
-            real_job_id = notif_id.replace("analysis_", "")
-            user_ref.collection('analyses').document(real_job_id).delete()
-        else:
-            user_ref.collection('notifications').document(notif_id).delete()
-        return {"status": "success"}
-    except Exception as e:
-        print(f"Error deleting notification: {e}")
-        return {"status": "success"}
+    if db_firestore:
+        try:
+            user_ref = db_firestore.collection('users').document(user_id)
+            if notif_id.startswith("analysis_"):
+                real_job_id = notif_id.replace("analysis_", "")
+                user_ref.collection('analyses').document(real_job_id).delete()
+            else:
+                user_ref.collection('notifications').document(notif_id).delete()
+        except Exception as e:
+            print(f"Error deleting notification: {e}")
+    return {"status": "success"}
 
 @router.delete("/user/{user_id}/notifications")
 async def clear_all_notifications(user_id: str):
     """
     Delete/clear all notifications for a user.
     """
-    try:
-        db = firestore.client()
-        user_ref = db.collection('users').document(user_id)
+    if db_firestore:
+        try:
+            user_ref = db_firestore.collection('users').document(user_id)
+            notifs = user_ref.collection('notifications').stream()
+            for doc in notifs:
+                doc.reference.delete()
+        except Exception as e:
+            print(f"Error clearing notifications: {e}")
+    return {"status": "success", "message": "All notifications cleared"}
 
-        notifs = user_ref.collection('notifications').stream()
-        for doc in notifs:
-            doc.reference.delete()
-
-        return {"status": "success", "message": "All notifications cleared"}
-    except Exception as e:
-        print(f"Error clearing notifications: {e}")
-        return {"status": "success"}
