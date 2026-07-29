@@ -582,7 +582,10 @@ async def get_user_profile(user_id: str):
         "company": "",
         "email": "",
         "photo_url": "",
-        "payment_method": None
+        "payment_method": None,
+        "plan": "Free",
+        "role": "User",
+        "subscription_end_date": None
     }
     if supabase:
         try:
@@ -594,26 +597,44 @@ async def get_user_profile(user_id: str):
                     "company": p.get('company') or "",
                     "email": p.get('email') or "",
                     "photo_url": p.get('photo_url') or p.get('avatar_url') or "",
-                    "payment_method": p.get('payment_method')
+                    "payment_method": p.get('payment_method'),
+                    "plan": p.get('plan') or "Free",
+                    "role": p.get('role') or "User",
+                    "subscription_end_date": p.get('subscription_end_date')
+                })
+                return profile
+            
+            # Fallback to users table in Supabase
+            res_users = supabase.table('users').select('*').eq('uid', user_id).execute()
+            if res_users.data and len(res_users.data) > 0:
+                u = res_users.data[0]
+                profile.update({
+                    "email": u.get('email') or "",
+                    "plan": u.get('plan') or "Free",
+                    "role": u.get('role') or "User",
+                    "subscription_end_date": u.get('subscription_end_date')
                 })
                 return profile
         except Exception as sb_e:
             print(f"Supabase profile fetch warning: {sb_e}")
 
-    try:
-        db = firestore.client()
-        doc = db.collection('users').document(user_id).get()
-        if doc.exists:
-            d = doc.to_dict()
-            profile.update({
-                "display_name": d.get('display_name') or d.get('displayName') or "",
-                "company": d.get('company') or "",
-                "email": d.get('email') or "",
-                "photo_url": d.get('photo_url') or d.get('photoURL') or "",
-                "payment_method": d.get('payment_method')
-            })
-    except Exception as fs_e:
-        print(f"Firestore profile fetch warning: {fs_e}")
+    if db_firestore:
+        try:
+            doc = db_firestore.collection('users').document(user_id).get()
+            if doc.exists:
+                d = doc.to_dict()
+                profile.update({
+                    "display_name": d.get('display_name') or d.get('displayName') or "",
+                    "company": d.get('company') or "",
+                    "email": d.get('email') or "",
+                    "photo_url": d.get('photo_url') or d.get('photoURL') or "",
+                    "payment_method": d.get('payment_method'),
+                    "plan": d.get('plan') or "Free",
+                    "role": d.get('role') or "User",
+                    "subscription_end_date": d.get('subscription_end_date')
+                })
+        except Exception as fs_e:
+            print(f"Firestore profile fetch warning: {fs_e}")
 
     return profile
 
@@ -633,6 +654,11 @@ async def update_user_profile(user_id: str, request: Request):
     email = body.get("email")
     photo_url = body.get("photo_url")
     payment_method = body.get("payment_method")
+    plan = body.get("plan")
+    role = body.get("role")
+    subscription_end_date = body.get("subscription_end_date")
+    trial_expires_at = body.get("trial_expires_at")
+    has_used_trial = body.get("has_used_trial")
 
     update_payload = {}
     if display_name is not None: update_payload["display_name"] = display_name
@@ -640,19 +666,25 @@ async def update_user_profile(user_id: str, request: Request):
     if email is not None: update_payload["email"] = email
     if photo_url is not None: update_payload["photo_url"] = photo_url
     if "payment_method" in body: update_payload["payment_method"] = payment_method
+    if plan is not None: update_payload["plan"] = plan
+    if role is not None: update_payload["role"] = role
+    if subscription_end_date is not None: update_payload["subscription_end_date"] = subscription_end_date
+    if trial_expires_at is not None: update_payload["trial_expires_at"] = trial_expires_at
+    if has_used_trial is not None: update_payload["has_used_trial"] = has_used_trial
 
     if supabase:
         try:
             supabase.table('profiles').upsert({"id": user_id, **update_payload}).execute()
+            supabase.table('users').upsert({"uid": user_id, **update_payload}, on_conflict="uid").execute()
         except Exception as sb_e:
             print(f"Supabase profile update warning: {sb_e}")
 
-    try:
-        db = firestore.client()
-        user_ref = db.collection('users').document(user_id)
-        user_ref.set(update_payload, merge=True)
-    except Exception as fs_e:
-        print(f"Firestore profile update warning: {fs_e}")
+    if db_firestore:
+        try:
+            user_ref = db_firestore.collection('users').document(user_id)
+            user_ref.set(update_payload, merge=True)
+        except Exception as fs_e:
+            print(f"Firestore profile update warning: {fs_e}")
 
     if firebase_auth:
         try:
@@ -663,6 +695,7 @@ async def update_user_profile(user_id: str, request: Request):
                 firebase_auth.update_user(user_id, **kwargs)
         except Exception as fa_e:
             print(f"Firebase Auth profile update warning: {fa_e}")
+
 
     return {"status": "success", "profile": update_payload}
 
@@ -1980,39 +2013,40 @@ async def verify_razorpay_payment(data: dict):
              if supabase:
                  try:
                      supabase.table("users").upsert({"uid": user_id, "plan": plan, "subscription_end_date": end_date_str}, on_conflict="uid").execute()
+                     supabase.table("profiles").upsert({"id": user_id, "plan": plan, "subscription_end_date": end_date_str}, on_conflict="id").execute()
+                     print(f"Supabase plan updated to {plan} for user {user_id}")
                  except Exception as se:
                      print(f"Supabase plan update failed: {se}")
              
-             # 2. Update Firestore
-             try:
-                 await run_firestore_retry("verify_payment_fulfill", 
-                     lambda: db_firestore.collection('users').document(user_id).set({"plan": plan, "subscription_end_date": end_date_str}, merge=True))
+             # 2. Update Firestore if initialized
+             if db_firestore:
+                 try:
+                     await run_firestore_retry("verify_payment_fulfill", 
+                         lambda: db_firestore.collection('users').document(user_id).set({"plan": plan, "subscription_end_date": end_date_str}, merge=True))
+                     
+                     # Save a dashboard notification
+                     notif_ref = db_firestore.collection('users').document(user_id).collection('notifications').document()
+                     await run_firestore_retry("create_notification",
+                         lambda: notif_ref.set({
+                             "title": "Plan Upgraded",
+                             "message": f"Successfully upgraded to {plan} Plan!",
+                             "type": "success",
+                             "created_at": firestore.SERVER_TIMESTAMP,
+                             "read": False
+                         })
+                     )
+                     
+                     user_doc = db_firestore.collection('users').document(user_id).get()
+                     if user_doc.exists:
+                         user_email = user_doc.to_dict().get("email", "user@example.com")
+                         send_email(
+                             to_email=user_email,
+                             subject="Subscription Upgraded Successfully",
+                             body=f"Hello,\n\nYour PrintGuard AI subscription has been successfully upgraded to the {plan} plan.\nYour new plan is valid until {end_date.strftime('%Y-%m-%d')}.\n\nThank you for choosing PrintGuard AI!"
+                         )
+                 except Exception as fe:
+                     print(f"Firestore plan update failed: {fe}")
                  
-                 # Save a dashboard notification
-                 notif_ref = db_firestore.collection('users').document(user_id).collection('notifications').document()
-                 await run_firestore_retry("create_notification",
-                     lambda: notif_ref.set({
-                         "title": "Plan Upgraded",
-                         "message": f"Successfully upgraded to {plan} Plan!",
-                         "type": "success",
-                         "created_at": firestore.SERVER_TIMESTAMP,
-                         "read": False
-                     })
-                 )
-             except Exception as fe:
-                 print(f"Firestore plan update failed: {fe}")
-                 
-             # Send email notification
-             # Note: For production, we can retrieve user email from DB or Razorpay payload
-             user_doc = db_firestore.collection('users').document(user_id).get()
-             if user_doc.exists:
-                 user_email = user_doc.to_dict().get("email", "user@example.com")
-                 send_email(
-                     to_email=user_email,
-                     subject="Subscription Upgraded Successfully",
-                     body=f"Hello,\\n\\nYour PrintGuard AI subscription has been successfully upgraded to the {plan} plan.\\nYour new plan is valid until {end_date.strftime('%Y-%m-%d')}.\\n\\nThank you for choosing PrintGuard AI!"
-                 )
-             
              return {"status": "success", "message": f"Payment verified and plan upgraded to {plan}"}
         except Exception as db_e:
             print(f"Error updating user plan: {db_e}")
