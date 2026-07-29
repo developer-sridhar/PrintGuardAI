@@ -17,6 +17,7 @@ requests
 reportlab
 cairosvg
 twilio
+razorpay
 flask
 flask-cors
 opencv-python-headless
