@@ -537,9 +537,10 @@ async def get_user_stats(user_id: str):
             print(f"Supabase stats failed: {e}")
 
     # 2. Firestore Stats (Basic check for records not in Supabase)
-    try:
-        db_firestore = firestore.client()
-        docs = db_firestore.collection('users').document(user_id).collection('analyses').stream()
+    if db_firestore:
+        try:
+            docs = db_firestore.collection('users').document(user_id).collection('analyses').stream()
+
         
         # If we have Supabase records, we only count Firestore ones that are "different" 
         # based on job_id, but for simple stats, we can just merge if supabase is empty
