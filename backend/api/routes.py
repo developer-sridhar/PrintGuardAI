@@ -540,28 +540,22 @@ async def get_user_stats(user_id: str):
     if db_firestore:
         try:
             docs = db_firestore.collection('users').document(user_id).collection('analyses').stream()
-
-        
-        # If we have Supabase records, we only count Firestore ones that are "different" 
-        # based on job_id, but for simple stats, we can just merge if supabase is empty
-        # or if we want to be precise. Let's stick to the Unified pattern.
-        
-        if total_files == 0: # Fallback or primarily Firestore user
-             for doc in docs:
-                item = doc.to_dict()
-                total_files += 1
-                total_score += item.get('score', 0)
-                count_for_avg += 1
-                
-                # Check fixes
-                fixes = item.get('auto_fixes', [])
-                if len(fixes) > 2: # Simple heuristic for non-default
-                    total_fixes += 1
-                elif len(fixes) > 0 and not any("Optimized" in f for f in fixes):
-                    total_fixes += 1
+            if total_files == 0: # Fallback or primarily Firestore user
+                 for doc in docs:
+                    item = doc.to_dict()
+                    total_files += 1
+                    total_score += item.get('score', 0)
+                    count_for_avg += 1
                     
-    except Exception as e:
-        print(f"Firestore stats failed: {e}")
+                    # Check fixes
+                    fixes = item.get('auto_fixes', [])
+                    if len(fixes) > 2: # Simple heuristic for non-default
+                        total_fixes += 1
+                    elif len(fixes) > 0 and not any("Optimized" in f for f in fixes):
+                        total_fixes += 1
+        except Exception as e:
+            print(f"Firestore stats failed: {e}")
+
 
     avg_score = round(total_score / count_for_avg) if count_for_avg > 0 else 0
     
