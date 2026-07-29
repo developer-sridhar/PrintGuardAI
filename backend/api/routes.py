@@ -776,7 +776,12 @@ async def fix_bleed_endpoint(
             except Exception as fs_e:
                 print(f"Firestore lookup failed for bleed fix: {fs_e}")
 
-        ext = target_format.lower()
+        raw_ext = (target_format or "pdf").lower()
+        if "pdf" in raw_ext: ext = "pdf"
+        elif "jpg" in raw_ext or "jpeg" in raw_ext: ext = "jpg"
+        elif "png" in raw_ext: ext = "png"
+        else: ext = "pdf"
+
         fd, input_temp = tempfile.mkstemp(suffix=f"_{file_name}")
         os.close(fd)
 
@@ -785,12 +790,14 @@ async def fix_bleed_endpoint(
         # Attempt A: Supabase storage download
         if storage_path and supabase:
             try:
+                clean_path = storage_path.replace('uploads/', '') if storage_path.startswith('uploads/') else storage_path
                 with open(input_temp, 'wb+') as f:
-                    res_file = supabase.storage.from_('uploads').download(storage_path)
+                    res_file = supabase.storage.from_('uploads').download(clean_path)
                     f.write(res_file)
                 file_retrieved = True
             except Exception as dl_e:
                 print(f"Supabase storage download failed: {dl_e}")
+
 
         # Attempt B: Direct file upload fallback
         if not file_retrieved and file:

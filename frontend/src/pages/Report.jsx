@@ -140,12 +140,13 @@ const Report = () => {
             if (analysisData?.supabase_storage_path) {
                 formData.append('supabase_storage_path', analysisData.supabase_storage_path);
             }
-            if (analysisData?.rendered_pages?.[0]) {
+            if (analysisData?.rendered_pages?.[0] && (!analysisData?.supabase_storage_path || analysisData.rendered_pages[0].length < 1000000)) {
                 formData.append('base64_image', analysisData.rendered_pages[0]);
             }
             if (analysisData?.file_name) {
                 formData.append('file_name_param', analysisData.file_name);
             }
+
 
             const response = await fetch(`${apiBase}/api/fix/bleed`, {
                 method: 'POST',
