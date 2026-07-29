@@ -50,20 +50,37 @@ else:
     print(f"Razorpay Key loaded: {razorpay_key_id}")
     razorpay_client = razorpay.Client(auth=(razorpay_key_id, razorpay_key_secret))
 
-# Initialize Firebase Admin once
+# Initialize Firebase Admin once with env var support
 try:
     firebase_admin.get_app()
 except ValueError:
     _BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     cred_path = os.path.join(_BASE_DIR, "firebase_key.json")
+    firebase_json_env = os.getenv("FIREBASE_CREDENTIALS_JSON") or os.getenv("FIREBASE_KEY_JSON")
+    
     if os.path.exists(cred_path):
         cred = credentials.Certificate(cred_path)
         firebase_admin.initialize_app(cred)
+        print("Firebase Admin initialized from firebase_key.json file.")
+    elif firebase_json_env:
+        try:
+            import json
+            cred_dict = json.loads(firebase_json_env)
+            cred = credentials.Certificate(cred_dict)
+            firebase_admin.initialize_app(cred)
+            print("Firebase Admin initialized from FIREBASE_CREDENTIALS_JSON env variable.")
+        except Exception as e:
+            print(f"WARNING: Failed to initialize Firebase from env JSON: {e}")
     else:
-        firebase_admin.initialize_app()
+        print("WARNING: firebase_key.json not found and FIREBASE_CREDENTIALS_JSON not set. Firebase Admin disabled.")
 
-# Persistent Firestore client to avoid repeated initializations
-db_firestore = firestore.client()
+# Persistent Firestore client with safe fallback
+try:
+    db_firestore = firestore.client()
+except Exception as e:
+    print(f"WARNING: Firestore client initialization skipped or failed: {e}")
+    db_firestore = None
+
 
 async def run_firestore_retry(func_name: str, operation, max_retries=3, delay=1):
     """

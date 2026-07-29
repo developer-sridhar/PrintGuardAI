@@ -42,13 +42,29 @@ from api.routes import router as api_router
 
 # Initialize Firebase Admin SDK
 cred_path = os.path.join(os.path.dirname(__file__), "firebase_key.json")
+firebase_json_env = os.getenv("FIREBASE_CREDENTIALS_JSON") or os.getenv("FIREBASE_KEY_JSON")
+
 if os.path.exists(cred_path):
-    cred = credentials.Certificate(cred_path)
-    if not firebase_admin._apps:
-        firebase_admin.initialize_app(cred)
-    print("Firebase Admin SDK initialized successfully.")
+    try:
+        cred = credentials.Certificate(cred_path)
+        if not firebase_admin._apps:
+            firebase_admin.initialize_app(cred)
+        print("Firebase Admin SDK initialized successfully from file.")
+    except Exception as e:
+        print(f"WARNING: Failed to initialize Firebase from file: {e}")
+elif firebase_json_env:
+    try:
+        import json
+        cred_dict = json.loads(firebase_json_env)
+        cred = credentials.Certificate(cred_dict)
+        if not firebase_admin._apps:
+            firebase_admin.initialize_app(cred)
+        print("Firebase Admin SDK initialized successfully from env JSON.")
+    except Exception as e:
+        print(f"WARNING: Failed to initialize Firebase from env JSON: {e}")
 else:
-    print("WARNING: firebase_key.json not found. Firebase features will be disabled.")
+    print("WARNING: firebase_key.json not found and FIREBASE_CREDENTIALS_JSON not set. Firebase Admin features will be disabled.")
+
 
 app = FastAPI(
     title="PrintGuard AI Report Engine",
