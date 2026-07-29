@@ -1,0 +1,22 @@
+# Root Requirements for PrintGuard AI deployment
+fastapi
+uvicorn
+gunicorn
+python-multipart
+pydantic
+PyMuPDF
+Pillow
+psd-tools
+firebase-admin
+supabase
+python-dotenv
+aiohttp
+numpy
+scipy
+requests
+reportlab
+cairosvg
+twilio
+flask
+flask-cors
+opencv-python-headless
