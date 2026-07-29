@@ -224,7 +224,12 @@ async def sync_firebase_user(data: dict):
 
 # Supabase Client Initialization
 supabase_url = os.getenv("SUPABASE_URL") or os.getenv("VITE_SUPABASE_URL")
-supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY")
+supabase_key = (
+    os.getenv("SUPABASE_SERVICE_ROLE_KEY") or
+    os.getenv("SUPABASE_SECRET_KEY") or
+    os.getenv("SUPABASE_KEY") or
+    os.getenv("VITE_SUPABASE_ANON_KEY")
+)
 supabase: Client = None
 
 if supabase_url and supabase_key:
@@ -233,6 +238,9 @@ if supabase_url and supabase_key:
         print("Supabase client initialized in backend.", flush=True)
     except Exception as e:
         print(f"Failed to initialize Supabase client: {e}", flush=True)
+else:
+    print("WARNING: Supabase URL or Key not set. Supabase features will be disabled.", flush=True)
+
 
 # Twilio Initialization (Safe Runtime Helper)
 def get_twilio_client():
