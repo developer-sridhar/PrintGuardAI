@@ -83,9 +83,10 @@ app.add_middleware(
 app.include_router(api_router, prefix="/api")
 # app.include_router(diag_router, prefix="/api")
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 def health_check():
     return {"status": "operational", "service": "ReportLab PDF Engine"}
+
 
 if __name__ == "__main__":
     import uvicorn
