@@ -24,8 +24,8 @@ const ScoreGauge = ({ score }) => {
                     text={`${score}`}
                     styles={buildStyles({
                         pathColor: color,
-                        textColor: '#fff',
-                        trailColor: 'rgba(255,255,255,0.1)',
+                        textColor: color,
+                        trailColor: 'rgba(255, 255, 255, 0.1)',
                         textSize: '28px',
                         pathTransitionDuration: 1.5,
                     })}

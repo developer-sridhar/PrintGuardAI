@@ -2,3 +2,16 @@ fastapi
 uvicorn
 python-multipart
 pydantic
+PyMuPDF
+Pillow
+psd-tools
+firebase-admin
+supabase
+python-dotenv
+aiohttp
+numpy
+scipy
+requests
+reportlab
+cairosvg
+twilio

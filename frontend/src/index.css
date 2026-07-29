@@ -1,15 +1,131 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Dark Mode (Default) ─── */
+:root {
+  --bg-main: 9, 9, 11;
+  /* zinc-950 */
+  --bg-secondary: 24, 24, 27;
+  /* zinc-900 */
+
+  --text-primary: 255, 255, 255;
+  /* white */
+  --text-secondary: 161, 161, 170;
+  /* zinc-400 */
+  --text-muted: 113, 113, 122;
+  /* zinc-500 */
+
+  --border-main: 39, 39, 42;
+  /* zinc-800 */
+  --border-hover: 63, 63, 70;
+  /* zinc-700 */
+
+  --brand-primary: 251, 191, 36;
+  /* Amber-400 / brand yellow */
+}
+
+/* ─── Light Mode ─── */
+:root[data-theme="light"] {
+  --bg-main: 245, 245, 249;
+  /* soft gray */
+  --bg-secondary: 255, 255, 255;
+  /* white */
+
+  --text-primary: 9, 9, 11;
+  /* zinc-950 */
+  --text-secondary: 63, 63, 70;
+  /* zinc-700 */
+  --text-muted: 113, 113, 122;
+  /* zinc-500 */
+
+  --border-main: 228, 228, 231;
+  /* zinc-200 */
+  --border-hover: 212, 212, 216;
+  /* zinc-300 */
+}
+
+/* ─── Color Themes ─── */
+:root[data-color="yellow"] {
+  --brand-primary: 251, 191, 36;
+}
+
+/* Amber-400   */
+:root[data-color="emerald"] {
+  --brand-primary: 52, 211, 153;
+}
+
+/* Emerald-400 */
+:root[data-color="blue"] {
+  --brand-primary: 96, 165, 250;
+}
+
+/* Blue-400    */
+:root[data-color="rose"] {
+  --brand-primary: 251, 113, 133;
+}
+
+/* Rose-400    */
+:root[data-color="purple"] {
+  --brand-primary: 192, 132, 252;
+}
+
+/* Purple-400  */
+
+/* ─── Transition for smooth theme switch ─── */
+*,
+*::before,
+*::after {
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.15s ease;
+}
+
 @layer base {
   body {
-    @apply font-sans antialiased text-slate-800 bg-slate-50;
+    @apply font-sans antialiased;
+    background-color: rgb(var(--bg-main));
+    color: rgb(var(--text-secondary));
   }
-  
-  h1, h2, h3, h4, h5, h6 {
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-poppins;
+    color: rgb(var(--text-primary));
   }
+}
+
+/* ─── 3D Credit Card Animation Utilities ─── */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.transform-style-3d {
+  transform-style: preserve-3d;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
+
+@keyframes cardShimmer {
+  0% {
+    transform: translateX(-150%) rotate(25deg);
+  }
+  100% {
+    transform: translateX(250%) rotate(25deg);
+  }
+}
+
+.animate-card-shimmer {
+  animation: cardShimmer 3.5s infinite ease-in-out;
 }

@@ -23,3 +23,15 @@ env/
 .idea/
 *.swp
 .DS_Store
+
+# Secrets & Service Accounts
+firebase_key.json
+*.json.key
+*.pem
+
+# Logs
+*.log
+
+# Temporary files
+tmp/
+

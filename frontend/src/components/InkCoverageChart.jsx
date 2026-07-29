@@ -24,8 +24,8 @@ const InkCoverageChart = ({ cmyk_coverage = { c: 42, m: 38, y: 35, k: 65 }, tac 
         indexAxis: 'y',
         elements: {
             bar: {
-                borderWidth: 2,
-                borderRadius: 4,
+                borderWidth: 0,
+                borderRadius: 8,
             },
         },
         responsive: true,
@@ -38,8 +38,15 @@ const InkCoverageChart = ({ cmyk_coverage = { c: 42, m: 38, y: 35, k: 65 }, tac 
                 display: false,
             },
             tooltip: {
+                backgroundColor: '#18181b',
+                titleColor: '#fff',
+                bodyColor: '#a1a1aa',
+                borderColor: '#27272a',
+                borderWidth: 1,
+                padding: 12,
+                cornerRadius: 12,
                 callbacks: {
-                    label: (context) => `${context.parsed.x}%`,
+                    label: (context) => ` ${context.parsed.x}% Coverage`,
                 }
             }
         },
@@ -47,12 +54,21 @@ const InkCoverageChart = ({ cmyk_coverage = { c: 42, m: 38, y: 35, k: 65 }, tac 
             x: {
                 max: 100,
                 grid: {
-                    color: '#f1f5f9'
+                    color: '#27272a',
+                    drawBorder: false
+                },
+                ticks: {
+                    color: '#71717a',
+                    font: { size: 10 }
                 }
             },
             y: {
                 grid: {
                     display: false
+                },
+                ticks: {
+                    color: '#e4e4e7',
+                    font: { weight: '600' }
                 }
             }
         }
@@ -83,20 +99,21 @@ const InkCoverageChart = ({ cmyk_coverage = { c: 42, m: 38, y: 35, k: 65 }, tac 
     };
 
     return (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 h-full flex flex-col">
-            <h3 className="text-lg font-semibold text-navy-900 mb-4">Ink Coverage Analysis</h3>
+        <div className="bg-dark-900/60 backdrop-blur-md rounded-2xl border border-zinc-800/60 p-8 h-full flex flex-col shadow-xl overflow-hidden relative">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-[rgba(var(--brand-primary),0.05)] blur-3xl rounded-full pointer-events-none"></div>
+            <h3 className="text-lg font-bold text-white mb-6 tracking-tight">Ink Analytics (CMYK)</h3>
 
-            <div className="flex-grow min-h-[200px] w-full relative">
+            <div className="flex-grow min-h-[220px] w-full relative z-10">
                 <Bar options={options} data={data} />
             </div>
 
-            <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
+            <div className="mt-8 pt-6 border-t border-zinc-800/60 flex items-center justify-between relative z-10">
                 <div>
-                    <p className="text-sm text-slate-500">Total Area Coverage (TAC)</p>
-                    <p className="text-2xl font-bold text-navy-900">{tac}%</p>
+                    <p className="text-xs uppercase font-bold tracking-widest text-zinc-500 mb-1">Total Area Coverage</p>
+                    <p className="text-3xl font-black text-white tracking-tighter">{tac}%</p>
                 </div>
-                <div className={`px-3 py-1 text-sm font-medium rounded-full ${tac > 300 ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700'}`}>
-                    {tac > 300 ? 'Warning: High Ink Load' : 'Safe Limit'}
+                <div className={`px-4 py-2 text-xs font-black uppercase tracking-widest rounded-xl border-2 ${tac > 300 ? 'bg-red-500/10 text-red-500 border-red-500/30 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.2)]'}`}>
+                    {tac > 300 ? 'High Ink Overload' : 'Optimal Limit'}
                 </div>
             </div>
         </div>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { Toaster } from 'react-hot-toast';
 import AuthLayout from './layouts/AuthLayout';
 import DashboardLayout from './layouts/DashboardLayout';
@@ -11,44 +12,53 @@ import Report from './pages/Report';
 import Pricing from './pages/Pricing';
 import Settings from './pages/Settings';
 import AdminDashboard from './pages/AdminDashboard';
-
-// Simple mockup for downloads page
-const Downloads = () => (
-  <div className="max-w-5xl mx-auto text-center mt-20">
-    <h1 className="text-3xl font-bold text-navy-900 mb-4">Downloads Archive</h1>
-    <p className="text-slate-500">Your previously generated PDF reports and print-ready files will appear here.</p>
-  </div>
-);
+import Archive from './pages/Archive';
+import Notifications from './pages/Notifications';
+import AdminRoute from './components/AdminRoute';
 
 function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Toaster position="top-right" />
-        <Routes>
-          {/* Public / Auth Routes */}
-          <Route element={<AuthLayout />}>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Login />} />
-          </Route>
+    <ThemeProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <Toaster position="top-right" toastOptions={{
+            style: {
+              background: 'rgb(24,24,27)',
+              color: '#fff',
+              border: '1px solid rgb(39,39,42)',
+            },
+          }} />
+          <Routes>
+            {/* Public / Auth Routes */}
+            <Route element={<AuthLayout />}>
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Login />} />
+            </Route>
 
-          {/* Protected Dashboard Routes */}
-          <Route element={<DashboardLayout />}>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/upload" element={<Upload />} />
-            <Route path="/report" element={<Report />} />
-            <Route path="/pricing" element={<Pricing />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/downloads" element={<Downloads />} />
-          </Route>
+            {/* Protected Dashboard Routes */}
+            <Route element={<DashboardLayout />}>
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/upload" element={<Upload />} />
+              <Route path="/report" element={<Report />} />
+              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/settings" element={<Settings />} />
 
-          {/* Catch-all */}
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+              {/* Admin Portal Protection */}
+              <Route element={<AdminRoute />}>
+                <Route path="/admin" element={<AdminDashboard />} />
+              </Route>
+
+              <Route path="/downloads" element={<Archive />} />
+              <Route path="/notifications" element={<Notifications />} />
+            </Route>
+
+            {/* Catch-all */}
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 
