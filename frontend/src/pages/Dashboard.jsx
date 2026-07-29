@@ -213,18 +213,19 @@ const Dashboard = () => {
     return (
         <div className="max-w-6xl mx-auto">
             {/* Header */}
-            <div className="mb-8 flex items-center justify-between">
+            <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-white mb-1">Overview</h1>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1">Overview</h1>
                     <p className="text-zinc-400 text-sm">Welcome back, {currentUser?.displayName?.split(' ')[0] || 'User'}! Here's your analysis summary.</p>
                 </div>
                 <Link
                     to="/upload"
-                    className="hidden sm:inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[rgb(var(--brand-primary))] to-orange-500 text-dark-950 font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(var(--brand-primary),0.3)] hover:shadow-[0_0_30px_rgba(var(--brand-primary),0.5)] hover:-translate-y-0.5 group text-sm"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[rgb(var(--brand-primary))] to-orange-500 text-dark-950 font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(var(--brand-primary),0.3)] hover:shadow-[0_0_30px_rgba(var(--brand-primary),0.5)] hover:-translate-y-0.5 group text-sm self-stretch sm:self-auto justify-center"
                 >
                     <UploadCloud className="w-4 h-4 group-hover:scale-110 transition-transform" /> New Analysis
                 </Link>
             </div>
+
 
             {/* Notifications */}
             {notifications.length > 0 && (

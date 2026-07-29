@@ -182,7 +182,8 @@ const Header = ({ onMenuClick }) => {
 
                     {/* Notifications Dropdown */}
                     {showNotifications && (
-                        <div className="absolute right-0 top-full mt-3 w-80 sm:w-96 bg-dark-900 border border-zinc-800 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden z-50 transform origin-top-right transition-all animate-in fade-in zoom-in-95 slide-in-from-top-4">
+                        <div className="fixed inset-x-3 top-16 sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-3 w-auto sm:w-96 bg-dark-900 border border-zinc-800 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden z-50 transform origin-top-right transition-all animate-in fade-in zoom-in-95 slide-in-from-top-4">
+
                             <div className="p-4 border-b border-zinc-800 flex items-center justify-between bg-dark-950/40">
                                 <h3 className="font-bold text-white text-base flex items-center gap-2">
                                     Notifications

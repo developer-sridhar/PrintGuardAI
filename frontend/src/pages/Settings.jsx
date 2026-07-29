@@ -326,15 +326,16 @@ const Settings = () => {
             <div className="bg-dark-900/60 backdrop-blur-md rounded-3xl shadow-[0_0_40px_rgba(0,0,0,0.6)] border border-zinc-800 overflow-hidden flex flex-col md:flex-row min-h-[620px]">
 
                 {/* ── Sidebar ── */}
-                <div className="w-full md:w-60 bg-dark-950/70 border-b md:border-b-0 md:border-r border-zinc-800 p-5 flex flex-col gap-1.5 relative">
+                <div className="w-full md:w-60 bg-dark-950/70 border-b md:border-b-0 md:border-r border-zinc-800 p-3 sm:p-5 flex flex-row md:flex-col overflow-x-auto md:overflow-visible gap-1.5 shrink-0 relative hide-scrollbar">
                     {/* Ambient glow */}
                     <div className="absolute top-0 left-0 w-full h-28 bg-brand-yellow/5 blur-3xl rounded-full pointer-events-none" />
-                    <div className="relative z-10 flex flex-col gap-1.5">
+                    <div className="relative z-10 flex flex-row md:flex-col gap-1.5 shrink-0 min-w-max md:min-w-0">
                         {navItems.map(item => (
                             <NavItem key={item.id} {...item} activeTab={activeTab} onClick={setActiveTab} />
                         ))}
                     </div>
                 </div>
+
 
                 {/* ── Content ── */}
                 <div className="flex-1 p-8 md:p-10 overflow-y-auto">
